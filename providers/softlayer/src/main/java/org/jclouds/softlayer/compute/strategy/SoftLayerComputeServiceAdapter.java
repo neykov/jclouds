@@ -25,12 +25,12 @@ import static com.google.common.collect.Iterables.get;
 import static com.google.common.collect.Iterables.tryFind;
 import static java.lang.Math.round;
 import static java.lang.String.format;
-import static org.jclouds.compute.domain.Volume.Type;
 import static org.jclouds.compute.util.ComputeServiceUtils.getCores;
 import static org.jclouds.compute.util.ComputeServiceUtils.getSpace;
 import static org.jclouds.softlayer.reference.SoftLayerConstants.PROPERTY_SOFTLAYER_VIRTUALGUEST_ACTIVE_TRANSACTIONS_DELAY;
 import static org.jclouds.softlayer.reference.SoftLayerConstants.PROPERTY_SOFTLAYER_VIRTUALGUEST_LOGIN_DETAILS_DELAY;
 import static org.jclouds.util.Predicates2.retry;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -48,6 +48,7 @@ import org.jclouds.compute.domain.HardwareBuilder;
 import org.jclouds.compute.domain.Processor;
 import org.jclouds.compute.domain.Template;
 import org.jclouds.compute.domain.Volume;
+import org.jclouds.compute.domain.Volume.Type;
 import org.jclouds.compute.domain.internal.VolumeImpl;
 import org.jclouds.compute.reference.ComputeServiceConstants;
 import org.jclouds.domain.LoginCredentials;
@@ -92,6 +93,7 @@ import com.google.common.collect.Sets;
 public class SoftLayerComputeServiceAdapter implements
       ComputeServiceAdapter<VirtualGuest, Hardware, OperatingSystem, Datacenter> {
 
+   private static final String USER_META_NOTES = "notes";
    private static final String BOOTABLE_DEVICE = "0";
    public static final String DEFAULT_DISK_TYPE = "LOCAL";
    public static final int DEFAULT_MAX_PORT_SPEED = 100;
@@ -138,7 +140,7 @@ public class SoftLayerComputeServiceAdapter implements
       final String imageId = template.getImage().getId();
       int cores = (int) template.getHardware().getProcessors().get(0).getCores();
 
-      VirtualGuest.Builder virtualGuestBuilder = VirtualGuest.builder()
+      VirtualGuest.Builder<?> virtualGuestBuilder = VirtualGuest.builder()
               .domain(domainName)
               .hostname(name)
               .hourlyBillingFlag(hourlyBillingFlag)
@@ -213,6 +215,10 @@ public class SoftLayerComputeServiceAdapter implements
          api.getVirtualGuestApi().setTags(result.getId(), templateOptions.getTags());
       }
 
+      if (templateOptions.getNotes().isPresent()) {
+         api.getVirtualGuestApi().setNotes(result.getId(), templateOptions.getNotes().get());
+      }
+
       logger.debug(">> awaiting login details for virtualGuest(%s)", result.getId());
       boolean orderInSystem = loginDetailsTester.apply(result);
       logger.trace("<< VirtualGuest(%s) complete(%s)", result.getId(), orderInSystem);
@@ -227,7 +233,7 @@ public class SoftLayerComputeServiceAdapter implements
       }
       result = api.getVirtualGuestApi().getVirtualGuest(result.getId());
       Password pwd = get(result.getOperatingSystem().getPasswords(), 0);
-      return new NodeAndInitialCredentials(result, result.getId() + "",
+      return new NodeAndInitialCredentials<VirtualGuest>(result, result.getId() + "",
               LoginCredentials.builder().user(pwd.getUsername()).password(pwd.getPassword()).build());
    }
 

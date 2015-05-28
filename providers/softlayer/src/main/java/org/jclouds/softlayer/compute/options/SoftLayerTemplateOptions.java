@@ -61,6 +61,7 @@ public class SoftLayerTemplateOptions extends TemplateOptions implements Cloneab
    protected Optional<Boolean> privateNetworkOnlyFlag = Optional.absent();
    protected Optional<String> postInstallScriptUri = Optional.absent();
    protected Optional<List<Integer>> sshKeys = Optional.absent();
+   protected Optional<String> notes = Optional.absent();
 
    @Override
    public SoftLayerTemplateOptions clone() {
@@ -104,6 +105,9 @@ public class SoftLayerTemplateOptions extends TemplateOptions implements Cloneab
          }
          if (sshKeys.isPresent()) {
             eTo.sshKeys(sshKeys.get());
+         }
+         if (notes.isPresent()) {
+            eTo.notes(notes.get());
          }
       }
    }
@@ -196,6 +200,11 @@ public class SoftLayerTemplateOptions extends TemplateOptions implements Cloneab
       return sshKeys(ImmutableList.copyOf(checkNotNull(sshKeys, "sshKeys")));
    }
 
+   public SoftLayerTemplateOptions notes(String notes) {
+      this.notes = Optional.of(notes);
+      return this;
+   }
+
    public String getDomainName() {
       return domainName;
    }
@@ -228,6 +237,10 @@ public class SoftLayerTemplateOptions extends TemplateOptions implements Cloneab
 
    public Optional<List<Integer>> getSshKeys() {
       return sshKeys;
+   }
+
+   public Optional<String> getNotes() {
+      return notes;
    }
 
    public static final SoftLayerTemplateOptions NONE = new SoftLayerTemplateOptions();
@@ -338,6 +351,11 @@ public class SoftLayerTemplateOptions extends TemplateOptions implements Cloneab
       public static SoftLayerTemplateOptions sshKeys(Iterable<Integer> sshKeys) {
          SoftLayerTemplateOptions options = new SoftLayerTemplateOptions();
          return SoftLayerTemplateOptions.class.cast(options.blockDevices(sshKeys));
+      }
+
+      public static SoftLayerTemplateOptions notes(String notes) {
+         SoftLayerTemplateOptions options = new SoftLayerTemplateOptions();
+         return SoftLayerTemplateOptions.class.cast(options.notes(notes));
       }
 
       // methods that only facilitate returning the correct object type

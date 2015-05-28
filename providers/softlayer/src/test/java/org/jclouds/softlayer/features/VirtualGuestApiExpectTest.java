@@ -273,4 +273,36 @@ public class VirtualGuestApiExpectTest extends BaseSoftLayerApiExpectTest {
       VirtualGuest virtualGuest = createVirtualGuest();
       assertFalse(api.getVirtualGuestApi().setTags(virtualGuest.getId(), ImmutableSet.of("test1", "test2", "test3")));
    }
+
+   public void testSetNotesOnVirtualGuestWhenResponseIs2xx() {
+
+      HttpRequest setNodesOnVirtualGuest = HttpRequest.builder().method("POST")
+              .endpoint("https://api.softlayer.com/rest/v3/SoftLayer_Virtual_Guest/1301396/editObject")
+              .addHeader("Accept", "application/json")
+              .addHeader("Authorization", "Basic aWRlbnRpdHk6Y3JlZGVudGlhbA==")
+              .payload(payloadFromResourceWithContentType("/virtual_guest_set_notes.json", MediaType.APPLICATION_JSON))
+              .build();
+
+      HttpResponse setNotesOnVirtualGuestResponse = HttpResponse.builder().statusCode(200)
+              .payload("true").build();
+
+      SoftLayerApi api = requestSendsResponse(setNodesOnVirtualGuest, setNotesOnVirtualGuestResponse);
+      VirtualGuest virtualGuest = createVirtualGuest();
+      assertTrue(api.getVirtualGuestApi().setNotes(virtualGuest.getId(), "some notes"));
+   }
+
+   public void testSetNotesOnVirtualGuestWhenResponseIs4xx() {
+
+      HttpRequest setNotesOnVirtualGuest = HttpRequest.builder().method("POST")
+              .endpoint("https://api.softlayer.com/rest/v3/SoftLayer_Virtual_Guest/1301396/editObject")
+              .addHeader("Accept", "application/json")
+              .addHeader("Authorization", "Basic aWRlbnRpdHk6Y3JlZGVudGlhbA==")
+              .payload(payloadFromResourceWithContentType("/virtual_guest_set_notes.json", MediaType.APPLICATION_JSON))
+              .build();
+
+      HttpResponse setNotesOnVirtualGuestResponse = HttpResponse.builder().statusCode(404).build();
+      SoftLayerApi api = requestSendsResponse(setNotesOnVirtualGuest, setNotesOnVirtualGuestResponse);
+      VirtualGuest virtualGuest = createVirtualGuest();
+      assertFalse(api.getVirtualGuestApi().setNotes(virtualGuest.getId(), "some notes"));
+   }
 }

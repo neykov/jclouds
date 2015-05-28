@@ -33,6 +33,7 @@ import org.jclouds.rest.annotations.BinderParam;
 import org.jclouds.rest.annotations.Fallback;
 import org.jclouds.rest.annotations.QueryParams;
 import org.jclouds.rest.annotations.RequestFilters;
+import org.jclouds.softlayer.binders.NotesToJson;
 import org.jclouds.softlayer.binders.TagToJson;
 import org.jclouds.softlayer.binders.VirtualGuestToJson;
 import org.jclouds.softlayer.domain.ContainerVirtualGuestConfiguration;
@@ -52,6 +53,8 @@ public interface VirtualGuestApi {
    String GUEST_MASK = "id;hostname;domain;fullyQualifiedDomainName;powerState;maxCpu;maxMemory;" +
            "statusId;operatingSystem.passwords;primaryBackendIpAddress;primaryIpAddress;activeTransactionCount;" +
            "blockDevices.diskImage;datacenter;tagReferences;privateNetworkOnlyFlag;sshKeys";
+
+   String NOTES_MASK = "id;notes";
 
    /**
     * Enables the creation of computing instances on an account.
@@ -138,7 +141,7 @@ public interface VirtualGuestApi {
    void resumeVirtualGuest(@PathParam("id") long id);
 
    /**
-    * Resume the guest.
+    * Set the tags on the instance
     *
     * @param id
     *           id of the virtual guest
@@ -149,4 +152,34 @@ public interface VirtualGuestApi {
    @Produces(MediaType.APPLICATION_JSON)
    @Fallback(Fallbacks.FalseOnNotFoundOr404.class)
    boolean setTags(@PathParam("id") long id, @BinderParam(TagToJson.class) Set<String> tags);
+
+   /**
+    * Set notes (visible in UI)
+    *
+    * @param id id of the virtual guest
+    * @param notes The notes property to set on the machine - visible in UI
+    */
+   @Named("VirtualGuest:setNotes")
+   @POST
+   @Path("/SoftLayer_Virtual_Guest/{id}/editObject")
+   @Produces(MediaType.APPLICATION_JSON)
+   @Fallback(Fallbacks.FalseOnNotFoundOr404.class)
+   boolean setNotes(@PathParam("id") long id, @BinderParam(NotesToJson.class) String notes);
+
+   /**
+    * Get notes (visible in UI)
+    *
+    * Don't include it in default getObject mask as it can get quite big (up to 1000 chars).
+    * Also no place to put it in NodeMetadata.
+    *
+    * @param id
+    *           id of the virtual guest
+    */
+   @Named("VirtualGuest:getNotes")
+   @GET
+   @Path("/SoftLayer_Virtual_Guest/{id}/getObject")
+   @Produces(MediaType.APPLICATION_JSON)
+   @QueryParams(keys = "objectMask", values = NOTES_MASK)
+   @Fallback(Fallbacks.NullOnNotFoundOr404.class)
+   VirtualGuest getNotes(@PathParam("id") long id);
 }
