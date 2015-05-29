@@ -67,7 +67,8 @@ public class SoftLayerProviderMetadata extends BaseProviderMetadata {
          .apiMetadata(new SoftLayerApiMetadata())
          .homepage(URI.create("http://www.softlayer.com"))
          .console(URI.create("https://manage.softlayer.com"))
-         .iso3166Codes("SG", "US-CA", "US-TX", "US-VA", "US-WA", "NL", "HK", "NSFTW-IL", "AU", "CA-ON", "GB")  // NSFTW-IL is a weird isoCode returned by Softlayer
+         .iso3166Codes("SG", "US-CA", "US-TX", "US-VA", "US-WA", "NL", "HK", "AU",
+               "CA-ON", "CA-QC", "GB", "DE", "MX", "FR", "JP", "IT")
          .endpoint("https://api.softlayer.com/rest")
          .defaultProperties(SoftLayerProviderMetadata.defaultProperties());
       }
