@@ -48,6 +48,7 @@ import com.google.common.net.InternetDomainName;
  * 
  */
 public class SoftLayerTemplateOptions extends TemplateOptions implements Cloneable {
+   public static int NOTES_MAX_LENGTH = 1000;
 
    protected String domainName = "jclouds.org";
    protected Optional<List<Integer>> blockDevices = Optional.absent();
@@ -201,6 +202,8 @@ public class SoftLayerTemplateOptions extends TemplateOptions implements Cloneab
    }
 
    public SoftLayerTemplateOptions notes(String notes) {
+      checkArgument(checkNotNull(notes, "notes").length() <= NOTES_MAX_LENGTH,
+            "notes cannot be longer than " + NOTES_MAX_LENGTH + " characters");
       this.notes = Optional.of(notes);
       return this;
    }

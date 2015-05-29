@@ -33,6 +33,7 @@ import static org.jclouds.util.Predicates2.retry;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -73,9 +74,11 @@ import org.jclouds.softlayer.domain.VirtualGuestBlockDeviceTemplateGroup;
 import org.jclouds.softlayer.domain.VirtualGuestNetworkComponent;
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
@@ -215,8 +218,9 @@ public class SoftLayerComputeServiceAdapter implements
          api.getVirtualGuestApi().setTags(result.getId(), templateOptions.getTags());
       }
 
-      if (templateOptions.getNotes().isPresent()) {
-         api.getVirtualGuestApi().setNotes(result.getId(), templateOptions.getNotes().get());
+      String notes = getNotesFrom(templateOptions);
+      if (!Strings.isNullOrEmpty(notes)) {
+         api.getVirtualGuestApi().setNotes(result.getId(), notes);
       }
 
       logger.debug(">> awaiting login details for virtualGuest(%s)", result.getId());
@@ -451,6 +455,27 @@ public class SoftLayerComputeServiceAdapter implements
               .filter(new IsOperatingSystem())
               .transform(new SoftwareDescriptionToOperatingSystem(image.getGlobalIdentifier()))
               .first();
+   }
+
+   private String getNotesFrom(SoftLayerTemplateOptions templateOptions) {
+      if (templateOptions.getNotes().isPresent()) {
+         return templateOptions.getNotes().get();
+      } else {
+         Map<String, String> meta = templateOptions.getUserMetadata();
+         if (meta != null && !meta.isEmpty()) {
+            if (meta.containsKey(USER_META_NOTES)) {
+               return meta.get(USER_META_NOTES);
+            } else {
+               String notes = "User Metadata\n===========\n\n" + Joiner.on("\n").withKeyValueSeparator(": ").join(meta);
+               if (notes.length() > SoftLayerTemplateOptions.NOTES_MAX_LENGTH) {
+                  String suffix = "...\n<truncated>";
+                  notes = notes.substring(0, SoftLayerTemplateOptions.NOTES_MAX_LENGTH - suffix.length()) + suffix;
+               }
+               return notes;
+            }
+         }
+      }
+      return null;
    }
 
    public static class VirtualGuestHasLoginDetailsPresent implements Predicate<VirtualGuest> {
