@@ -17,15 +17,18 @@
 package org.jclouds.ec2.compute.predicates;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.jclouds.ec2.features.SecurityGroupApi.SECURITY_GROUP_FILTER__GROUP_NAME;
 
 import java.util.NoSuchElementException;
 
 import javax.annotation.Resource;
 import javax.inject.Singleton;
 
+import com.google.common.collect.ImmutableMultimap;
 import org.jclouds.ec2.EC2Api;
 import org.jclouds.ec2.compute.domain.RegionAndName;
 import org.jclouds.ec2.domain.SecurityGroup;
+import org.jclouds.ec2.features.SecurityGroupApi;
 import org.jclouds.logging.Logger;
 import org.jclouds.rest.ResourceNotFoundException;
 
@@ -58,7 +61,9 @@ public class SecurityGroupPresent implements Predicate<RegionAndName> {
    }
 
    protected SecurityGroup refresh(RegionAndName securityGroup) {
-      return Iterables.getOnlyElement(client.getSecurityGroupApi().get().describeSecurityGroupsInRegion(
-            securityGroup.getRegion(), securityGroup.getName()));
+      // Would prefer to use describeSecurityGroupsInRegionById and pass the ID but that's only available in AWSSecurityGroupApi
+      return Iterables.getOnlyElement(client.getSecurityGroupApi().get().describeSecurityGroupsInRegionWithFilter(
+              securityGroup.getRegion(),
+              ImmutableMultimap.of(SECURITY_GROUP_FILTER__GROUP_NAME, securityGroup.getName())));
    }
 }

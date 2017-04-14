@@ -18,6 +18,7 @@ package org.jclouds.aws.ec2.compute.loaders;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.jclouds.compute.util.ComputeServiceUtils.getPortRangesFromList;
+import static org.jclouds.ec2.features.SecurityGroupApi.SECURITY_GROUP_FILTER__GROUP_ID;
 
 import java.util.Map;
 import java.util.Set;
@@ -27,12 +28,16 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
+import jdk.nashorn.internal.ir.annotations.Immutable;
 import org.jclouds.aws.ec2.AWSEC2Api;
 import org.jclouds.aws.ec2.features.AWSSecurityGroupApi;
 import org.jclouds.aws.ec2.options.CreateSecurityGroupOptions;
 import org.jclouds.compute.reference.ComputeServiceConstants;
 import org.jclouds.ec2.compute.domain.RegionAndName;
 import org.jclouds.ec2.compute.domain.RegionNameAndIngressRules;
+import org.jclouds.ec2.domain.SecurityGroup;
 import org.jclouds.logging.Logger;
 import org.jclouds.net.domain.IpPermission;
 import org.jclouds.net.domain.IpProtocol;
@@ -84,7 +89,7 @@ public class AWSEC2CreateSecurityGroupIfNeeded extends CacheLoader<RegionAndName
             options.vpcId(vpcId);
          }
          String id = securityApi.createSecurityGroupInRegionAndReturnId(region, name, name, options);
-         boolean created = securityGroupEventualConsistencyDelay.apply(new RegionAndName(region, name));
+         boolean created = securityGroupEventualConsistencyDelay.apply(new RegionAndName(region, id));
          if (!created)
             throw new RuntimeException(String.format("security group %s/%s is not available after creating", region,
                   name));
@@ -102,7 +107,9 @@ public class AWSEC2CreateSecurityGroupIfNeeded extends CacheLoader<RegionAndName
                                .build());
             }
 
-            String myOwnerId = Iterables.get(securityApi.describeSecurityGroupsInRegion(region, name), 0).getOwnerId();
+            Multimap<String, String> securityGroupFilterById = ImmutableMultimap.of(SECURITY_GROUP_FILTER__GROUP_ID, id);
+            String myOwnerId = Iterables.get(securityApi.describeSecurityGroupsInRegionWithFilter(
+                    region, securityGroupFilterById), 0).getOwnerId();
             permissions.add(IpPermission.builder()
                             .fromPort(0)
                             .toPort(65535)

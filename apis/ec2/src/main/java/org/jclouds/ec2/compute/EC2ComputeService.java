@@ -28,6 +28,8 @@ import static org.jclouds.compute.config.ComputeServiceProperties.TIMEOUT_NODE_S
 import static org.jclouds.compute.config.ComputeServiceProperties.TIMEOUT_NODE_TERMINATED;
 import static org.jclouds.compute.util.ComputeServiceUtils.addMetadataAndParseTagsFromValuesOfEmptyString;
 import static org.jclouds.compute.util.ComputeServiceUtils.metadataAndTagsAsValuesOfEmptyString;
+import static org.jclouds.ec2.features.SecurityGroupApi.SECURITY_GROUP_FILTER__GROUP_ID;
+import static org.jclouds.ec2.features.SecurityGroupApi.SECURITY_GROUP_FILTER__GROUP_NAME;
 import static org.jclouds.ec2.reference.EC2Constants.PROPERTY_EC2_GENERATE_INSTANCE_NAMES;
 import static org.jclouds.ec2.util.Tags.resourceToTagsAsMap;
 import static org.jclouds.util.Predicates2.retry;
@@ -95,6 +97,7 @@ import org.jclouds.ec2.compute.options.EC2TemplateOptions;
 import org.jclouds.ec2.domain.InstanceState;
 import org.jclouds.ec2.domain.KeyPair;
 import org.jclouds.ec2.domain.RunningInstance;
+import org.jclouds.ec2.domain.SecurityGroup;
 import org.jclouds.ec2.domain.Tag;
 import org.jclouds.ec2.util.TagFilterBuilder;
 import org.jclouds.scriptbuilder.functions.InitAdminAccess;
@@ -220,9 +223,16 @@ public class EC2ComputeService extends BaseComputeService {
       checkNotNull(emptyToNull(group), "group must be defined");
       String groupName = namingConvention.create().sharedNameForGroup(group);
 
-      if (!client.getSecurityGroupApi().get().describeSecurityGroupsInRegion(region, groupName).isEmpty()) {
+      Multimap<String, String> securityGroupFilterByName = ImmutableMultimap.of(SECURITY_GROUP_FILTER__GROUP_NAME, groupName);
+      Set<SecurityGroup> securityGroupsToDelete = client.getSecurityGroupApi().get()
+              .describeSecurityGroupsInRegionWithFilter(region, securityGroupFilterByName);
+      if (securityGroupsToDelete.size() > 1) {
+         logger.warn("When trying to delete security group {} found more than one matching the name. Will delete all - {}.",
+                 group, securityGroupsToDelete);
+      }
+      for (SecurityGroup securityGroup : securityGroupsToDelete) {
          logger.debug(">> deleting securityGroup(%s)", groupName);
-         client.getSecurityGroupApi().get().deleteSecurityGroupInRegion(region, groupName);
+         client.getSecurityGroupApi().get().deleteSecurityGroupInRegionById(region, securityGroup.getId());
          // TODO: test this clear happens
          securityGroupMap.invalidate(new RegionNameAndIngressRules(region, groupName, null, false, null));
          logger.debug("<< deleted securityGroup(%s)", groupName);

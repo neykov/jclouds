@@ -16,15 +16,7 @@
  */
 package org.jclouds.ec2.features;
 
-import static org.jclouds.aws.reference.FormParameters.ACTION;
-
-import java.util.Set;
-
-import javax.inject.Named;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-
+import com.google.common.collect.Multimap;
 import org.jclouds.Fallbacks.EmptySetOnNotFoundOr404;
 import org.jclouds.Fallbacks.VoidOnNotFoundOr404;
 import org.jclouds.aws.filters.FormSigner;
@@ -45,7 +37,13 @@ import org.jclouds.rest.annotations.RequestFilters;
 import org.jclouds.rest.annotations.VirtualHost;
 import org.jclouds.rest.annotations.XMLResponseParser;
 
-import com.google.common.collect.Multimap;
+import javax.inject.Named;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import java.util.Set;
+
+import static org.jclouds.aws.reference.FormParameters.ACTION;
 
 /**
  * Provides access to EC2 via their REST API.
@@ -54,6 +52,13 @@ import com.google.common.collect.Multimap;
 @RequestFilters(FormSigner.class)
 @VirtualHost
 public interface SecurityGroupApi {
+   // Supported by
+   //  * AWS
+   //  * Openstack - https://github.com/openstack/ec2-api/blob/61daf6a80fd6cc9ab800e6b6a2cd3d1d827e2527/ec2api/api/security_group.py#L144
+   //  * Eucalyptus - https://docs.eucalyptus.com/eucalyptus/4.4.0/#euca2ools-guide/euca-describe-groups.html
+   //                 https://github.com/eucalyptus/euca2ools/blob/096d97ef2729da976759657d6d6f645a6e959e05/euca2ools/commands/ec2/describesecuritygroups.py#L39
+   // NOTE: Eucalyptus lacks filters for VPC, group ID.
+   public static final String SECURITY_GROUP_FILTER__GROUP_NAME = "group-name";
 
    /**
     * Creates a new security group. Group names must be unique per identity.
@@ -86,21 +91,54 @@ public interface SecurityGroupApi {
             @EndpointParam(parser = RegionToEndpointOrProviderIfNull.class) @Nullable String region,
             @FormParam("GroupName") String name, @FormParam("GroupDescription") String description);
 
+
+   // Supported by
+   //  * AWS
+   //  * Openstack - https://github.com/openstack/ec2-api/blob/61daf6a80fd6cc9ab800e6b6a2cd3d1d827e2527/ec2api/api/security_group.py#L130
+   //  * Eucalyptus - https://docs.eucalyptus.com/eucalyptus/4.4.0/#euca2ools-guide/euca-delete-group.html
+   //                 https://github.com/eucalyptus/euca2ools/blob/096d97ef2729da976759657d6d6f645a6e959e05/euca2ools/commands/ec2/deletesecuritygroup.py#L37
    /**
-    * Deletes a security group that you own.
-    * 
+    * Deletes a security group by ID.
+    *
+    * @param region
+    *           Security groups are not copied across Regions. Instances within the Region cannot
+    *           communicate with instances outside the Region using group-based firewall rules.
+    *           Traffic from instances in another Region is seen as WAN bandwidth.
+    * @param id
+    *           ID of the security group to delete.
+    *
+    * @see #describeSecurityGroups
+    * @see #authorizeSecurityGroupIngress
+    * @see #revokeSecurityGroupIngress
+    * @see #createSecurityGroup
+    *
+    * @see <a href="http://docs.amazonwebservices.com/AWSEC2/latest/APIReference/ApiReference-query-DeleteSecurityGroup.html"
+    *      />
+    */
+   @Named("DeleteSecurityGroup")
+   @POST
+   @Path("/")
+   @FormParams(keys = ACTION, values = "DeleteSecurityGroup")
+   @Fallback(VoidOnNotFoundOr404.class)
+   void deleteSecurityGroupInRegionById(
+           @EndpointParam(parser = RegionToEndpointOrProviderIfNull.class) @Nullable String region,
+           @FormParam("GroupId") String id);
+
+   /**
+    * Deletes a security group by name. Works only for the default region.
+    *
     * @param region
     *           Security groups are not copied across Regions. Instances within the Region cannot
     *           communicate with instances outside the Region using group-based firewall rules.
     *           Traffic from instances in another Region is seen as WAN bandwidth.
     * @param name
     *           Name of the security group to delete.
-    * 
+    *
     * @see #describeSecurityGroups
     * @see #authorizeSecurityGroupIngress
     * @see #revokeSecurityGroupIngress
     * @see #createSecurityGroup
-    * 
+    *
     * @see <a href="http://docs.amazonwebservices.com/AWSEC2/latest/APIReference/ApiReference-query-DeleteSecurityGroup.html"
     *      />
     */
@@ -110,10 +148,11 @@ public interface SecurityGroupApi {
    @FormParams(keys = ACTION, values = "DeleteSecurityGroup")
    @Fallback(VoidOnNotFoundOr404.class)
    void deleteSecurityGroupInRegion(
-            @EndpointParam(parser = RegionToEndpointOrProviderIfNull.class) @Nullable String region, @FormParam("GroupName") String name);
+           @EndpointParam(parser = RegionToEndpointOrProviderIfNull.class) @Nullable String region, @FormParam("GroupName") String name);
 
    /**
     * Returns information about security groups that you own.
+    * <p><em>NOTE</em> Works with groups in default VPC only</p>
     *
     * @param region
     *           Security groups are not copied across Regions. Instances within the Region cannot
@@ -142,7 +181,7 @@ public interface SecurityGroupApi {
 
    /**
     * Returns information about security groups that you own.
-    *
+    *¡
     * @param region
     *           Security groups are not copied across Regions. Instances within the Region cannot
     *           communicate with instances outside the Region using group-based firewall rules.
@@ -319,4 +358,5 @@ public interface SecurityGroupApi {
             @EndpointParam(parser = RegionToEndpointOrProviderIfNull.class) @Nullable String region,
             @FormParam("GroupName") String groupName, @FormParam("IpProtocol") IpProtocol ipProtocol,
             @FormParam("FromPort") int fromPort, @FormParam("ToPort") int toPort, @FormParam("CidrIp") String cidrIp);
+
 }

@@ -111,6 +111,35 @@
         <groupId>com.theoryinpractise</groupId>
         <artifactId>clojure-maven-plugin</artifactId>
       </plugin>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.1</version>
+        <executions>
+          <execution>
+            <id>default-compile</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>default-testCompile</id>
+            <phase>test-compile</phase>
+            <goals>
+              <goal>testCompile</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration combine.self="override">
+          <compilerId>javac</compilerId>
+          <forceJavacCompilerUse>true</forceJavacCompilerUse>
+          <encoding>UTF-8</encoding>
+          <source>1.6</source>
+          <target>1.6</target>
+          <showDeprecation>false</showDeprecation>
+          <showWarnings>true</showWarnings>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 

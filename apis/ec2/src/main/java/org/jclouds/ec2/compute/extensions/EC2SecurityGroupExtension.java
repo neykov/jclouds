@@ -22,6 +22,8 @@ import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.collect.Iterables.transform;
+import static org.jclouds.ec2.features.SecurityGroupApi.SECURITY_GROUP_FILTER__GROUP_ID;
+import static org.jclouds.ec2.features.SecurityGroupApi.SECURITY_GROUP_FILTER__GROUP_NAME;
 
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -29,6 +31,7 @@ import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import com.google.common.collect.ImmutableMultimap;
 import org.jclouds.Constants;
 import org.jclouds.aws.util.AWSUtils;
 import org.jclouds.collect.Memoized;
@@ -139,8 +142,9 @@ public class EC2SecurityGroupExtension implements SecurityGroupExtension {
       String region = parts[0];
       String groupId = parts[1];
 
+      Multimap<String, String> securityGroupFilterById = ImmutableMultimap.of(SECURITY_GROUP_FILTER__GROUP_ID, groupId);
       Set<? extends org.jclouds.ec2.domain.SecurityGroup> rawGroups =
-         client.getSecurityGroupApi().get().describeSecurityGroupsInRegion(region, groupId);
+         client.getSecurityGroupApi().get().describeSecurityGroupsInRegionWithFilter(region, securityGroupFilterById);
 
       return getOnlyElement(transform(filter(rawGroups, notNull()), groupConverter));
    }
